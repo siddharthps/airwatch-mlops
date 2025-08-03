@@ -5,6 +5,7 @@ Run this before running the full model training pipeline.
 """
 
 import os
+import sys
 
 import boto3
 from dotenv import load_dotenv
@@ -65,7 +66,7 @@ def test_s3_connection():
             for obj in response['Contents'][:3]:
                 print(f"   - {obj['Key']}")
         else:
-            print("ℹ️ Bucket is empty")
+            print("Bucket is empty")
 
         return True
 
@@ -151,4 +152,4 @@ def main():
 
 if __name__ == "__main__":
     success = main()
-    exit(0 if success else 1)
+    sys.exit(0 if success else 1)

@@ -1,5 +1,4 @@
 # deploy_monitoring.py
-
 from datetime import timedelta
 
 from prefect.blocks.notifications import EmailNotification
@@ -34,9 +33,8 @@ deployment = Deployment.build_from_flow(
     path="flows",  # The directory where model_monitoring.py lives
     entrypoint="model_monitoring.py:model_monitoring_flow",
     notifications=[
-        dict(block=email_notifier_block, runs_on=["failed"]), # Trigger on FAILED state
-        # You could also add:
-        # dict(block=email_notifier_block, runs_on=["completed"]) # For success notifications
+        {"block": email_notifier_block, "runs_on": ["failed"]},  # Trigger on FAILED state
+        # You could also add for success notifications:
     ]
 )
 

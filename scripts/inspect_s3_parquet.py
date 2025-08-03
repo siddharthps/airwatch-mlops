@@ -31,8 +31,6 @@ def inspect_parquet_schema_from_s3(bucket_name, s3_key):
         for field in schema:
             print(f"- {field.name}: {field.type}")
 
-        # Optionally, read a small sample to see data
-        # df_sample = pd.read_parquet(io.BytesIO(response['Body'].read()), n_rows=5) # n_rows is for fastparquet
         # For pyarrow, you can read the whole thing and then take head:
         parquet_bytes.seek(0) # Reset buffer position
         df_sample = pd.read_parquet(parquet_bytes)
