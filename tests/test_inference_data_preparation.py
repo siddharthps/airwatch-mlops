@@ -7,6 +7,7 @@ import io
 from unittest.mock import patch
 
 import boto3
+from botocore.exceptions import ClientError
 from moto import mock_aws
 import pandas as pd
 import pytest
@@ -358,7 +359,7 @@ class TestWriteProcessedInferenceDataToS3:
     ):
         """Test handling of S3 upload errors."""
         # Don't create the bucket to simulate an error
-        with pytest.raises(Exception):
+        with pytest.raises((ClientError, FileNotFoundError)):
             write_processed_inference_data_to_s3(
                 processed_inference_data,
                 "nonexistent-bucket",
@@ -421,7 +422,7 @@ class TestInferenceDataPreparationFlow:
     @patch("flows.inference_data_preparation.transform_data_for_inference")
     @patch("flows.inference_data_preparation.fetch_epa_aqs_data_for_inference")
     def test_inference_data_preparation_flow_default_year(
-        self, mock_fetch, mock_transform, mock_write, mock_env_vars
+        self, mock_fetch, mock_transform, mock_env_vars
     ):
         """Test flow with default year (current year)."""
         current_year = datetime.now().year

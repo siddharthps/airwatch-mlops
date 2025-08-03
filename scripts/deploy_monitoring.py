@@ -1,9 +1,10 @@
 # deploy_monitoring.py
 
+from datetime import timedelta
+
+from prefect.blocks.notifications import EmailNotification
 from prefect.deployments import Deployment
 from prefect.server.schemas.schedules import IntervalSchedule
-from prefect.blocks.notifications import EmailNotification
-from datetime import timedelta
 
 # Import your flow
 from flows.model_monitoring import model_monitoring_flow

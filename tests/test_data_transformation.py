@@ -6,6 +6,7 @@ import io
 from unittest.mock import patch
 
 import boto3
+from botocore.exceptions import ClientError
 from moto import mock_aws
 import pandas as pd
 import pytest
@@ -276,7 +277,7 @@ class TestWriteTransformedDataToS3:
     def test_write_transformed_data_to_s3_upload_error(self, transformed_data):
         """Test handling of S3 upload errors."""
         # Don't create the bucket to simulate an error
-        with pytest.raises(Exception):
+        with pytest.raises((ClientError, FileNotFoundError)):
             write_transformed_data_to_s3(
                 transformed_data, "nonexistent-bucket", "test_prefix", "test_file"
             )

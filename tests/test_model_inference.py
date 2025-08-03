@@ -7,6 +7,7 @@ import io
 from unittest.mock import MagicMock, patch
 
 import boto3
+from botocore.exceptions import ClientError
 from moto import mock_aws
 import pandas as pd
 import pytest
@@ -120,7 +121,7 @@ class TestLoadProcessedInferenceDataFromS3:
         s3_client = boto3.client("s3", region_name="us-east-1")
         s3_client.create_bucket(Bucket=bucket_name)
 
-        with pytest.raises(Exception):
+        with pytest.raises((ClientError, FileNotFoundError)):
             load_processed_inference_data_from_s3(
                 bucket_name, "processed_inference", "nonexistent_file"
             )
@@ -128,7 +129,7 @@ class TestLoadProcessedInferenceDataFromS3:
     @mock_aws
     def test_load_processed_inference_data_from_s3_bucket_not_found(self):
         """Test handling of missing bucket."""
-        with pytest.raises(Exception):
+        with pytest.raises((ClientError, FileNotFoundError)):
             load_processed_inference_data_from_s3(
                 "nonexistent-bucket", "processed_inference", "test_file"
             )
@@ -290,7 +291,7 @@ class TestSavePredictionsToS3:
     def test_save_predictions_to_s3_upload_error(self, predictions_data):
         """Test handling of S3 upload errors."""
         # Don't create the bucket to simulate an error
-        with pytest.raises(Exception):
+        with pytest.raises((ClientError, FileNotFoundError)):
             save_predictions_to_s3(predictions_data, "nonexistent-bucket", 2025)
 
 
@@ -366,7 +367,6 @@ class TestModelBatchPredictionFlow:
         mock_prep_flow,
         mock_load_model,
         mock_generate,
-        mock_save,
         mock_model,
         sample_processed_data,
     ):
@@ -409,8 +409,8 @@ class TestModelBatchPredictionFlow:
         self,
         mock_prep_flow,
         mock_load_model,
-        mock_generate,
-        mock_save,
+        _mock_generate,
+        _mock_save,
         sample_processed_data,
     ):
         """Test flow when model loading fails."""
@@ -432,7 +432,6 @@ class TestModelBatchPredictionFlow:
         mock_prep_flow,
         mock_load_model,
         mock_generate,
-        mock_save,
         mock_model,
         sample_processed_data,
     ):

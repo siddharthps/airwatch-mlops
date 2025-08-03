@@ -6,6 +6,7 @@ import io
 from unittest.mock import MagicMock, patch
 
 import boto3
+from botocore.exceptions import ClientError
 from moto import mock_aws
 import pandas as pd
 import pytest
@@ -73,13 +74,13 @@ class TestLoadProcessedDataFromS3:
         s3_client = boto3.client("s3", region_name="us-east-1")
         s3_client.create_bucket(Bucket=bucket_name)
 
-        with pytest.raises(Exception):
+        with pytest.raises((ClientError, FileNotFoundError)):
             load_processed_data_from_s3(bucket_name, "nonexistent/file.parquet")
 
     @mock_aws
     def test_load_processed_data_from_s3_bucket_not_found(self):
         """Test handling of missing bucket."""
-        with pytest.raises(Exception):
+        with pytest.raises((ClientError, FileNotFoundError)):
             load_processed_data_from_s3("nonexistent-bucket", "test/file.parquet")
 
 

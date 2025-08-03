@@ -1,10 +1,10 @@
-import pandas as pd
-import pyarrow.parquet as pq
-import boto3
 import io
 import os
 
+import boto3
 from dotenv import load_dotenv
+import pandas as pd
+import pyarrow.parquet as pq
 
 # Load environment variables (assuming your .env is configured)
 load_dotenv()

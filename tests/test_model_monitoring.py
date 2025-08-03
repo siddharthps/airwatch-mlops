@@ -7,6 +7,7 @@ import io
 from unittest.mock import MagicMock, patch
 
 import boto3
+from botocore.exceptions import ClientError
 from moto import mock_aws
 import pandas as pd
 import pytest
@@ -76,7 +77,7 @@ class TestLoadHistoricalDataFromS3:
         s3_client = boto3.client("s3", region_name="us-east-1")
         s3_client.create_bucket(Bucket=bucket_name)
 
-        with pytest.raises(Exception):
+        with pytest.raises((ClientError, FileNotFoundError)):
             load_historical_data_from_s3(
                 bucket_name, "processed_data", "nonexistent.parquet"
             )
@@ -217,7 +218,7 @@ class TestSaveEvidentlyReportToS3:
     def test_save_evidently_report_to_s3_upload_error(self, mock_evidently_report):
         """Test handling of S3 upload errors."""
         # Don't create the bucket to simulate an error
-        with pytest.raises(Exception):
+        with pytest.raises((ClientError, FileNotFoundError)):
             save_evidently_report_to_s3(
                 mock_evidently_report, "nonexistent-bucket", "test_report.html"
             )
@@ -409,7 +410,7 @@ class TestCheckDataDrift:
         mock_report = MagicMock()
         mock_report.as_dict.return_value = {"invalid": "structure"}
 
-        with pytest.raises(Exception):
+        with pytest.raises((ValueError, KeyError)):
             check_data_drift(mock_report)
 
 
@@ -507,7 +508,7 @@ class TestModelMonitoringFlow:
         mock_load_predictions,
         mock_create_drift,
         mock_create_regression,
-        mock_save_report,
+        _mock_save_report,
         mock_check_drift,
         sample_reference_data,
         sample_current_data,
