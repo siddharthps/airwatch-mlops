@@ -1,0 +1,11 @@
+prefect dev start
+
+prefect block create email-notification --name "model-monitoring-email-alert" \
+    --field "sender_email=your_dummy_sender@example.com" \
+    --field "sender_password=your_dummy_password" \
+    --field "smtp_server=smtp.example.com" \
+    --field "smtp_port=587" \
+    --field "smtp_use_tls=true" \
+    --field "recipient_email=recipient@example.com" \
+    --field "subject=Air Quality Model Monitoring Alert!" \
+    --field "body=Attention: Air quality model monitoring flow status: {state_name} - {flow_run_name}. More details at {flow_run_url}"
