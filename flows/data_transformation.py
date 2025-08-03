@@ -10,17 +10,19 @@ import io
 import os
 import traceback
 
-import pandas as pd
 import boto3
 from dotenv import load_dotenv
-from prefect import flow, task, get_run_logger
+import pandas as pd
+from prefect import flow, get_run_logger, task
 
 # --- Load environment variables from .env file ---
 load_dotenv()
 
 
 @task(retries=3, retry_delay_seconds=10)
-def load_raw_data_from_s3(bucket_name: str, key_prefix: str, file_name: str) -> pd.DataFrame:
+def load_raw_data_from_s3(
+    bucket_name: str, key_prefix: str, file_name: str
+) -> pd.DataFrame:
     """
     Loads raw Parquet data from S3 into a Pandas DataFrame.
     """
@@ -30,13 +32,13 @@ def load_raw_data_from_s3(bucket_name: str, key_prefix: str, file_name: str) -> 
 
     try:
         # Get boto3 S3 client directly
-        s3_client = boto3.client('s3')
+        s3_client = boto3.client("s3")
 
         # Download the object
         response = s3_client.get_object(Bucket=bucket_name, Key=s3_key)
 
         # Read into Pandas DataFrame directly from bytes
-        df = pd.read_parquet(io.BytesIO(response['Body'].read()))
+        df = pd.read_parquet(io.BytesIO(response["Body"].read()))
 
         logger.info("Successfully loaded %d records from %s.", len(df), s3_key)
         logger.info("Raw data shape: %s", df.shape)
@@ -62,21 +64,21 @@ def transform_data(df: pd.DataFrame) -> pd.DataFrame:
     logger.info("✨ Starting data transformation on %d records.", len(df))
 
     # --- Data Cleaning & Type Conversion ---
-    if 'date_local' in df.columns:
-        df['date_local'] = pd.to_datetime(df['date_local'], errors='coerce')
+    if "date_local" in df.columns:
+        df["date_local"] = pd.to_datetime(df["date_local"], errors="coerce")
         before_drop = len(df)
-        df.dropna(subset=['date_local'], inplace=True)
+        df.dropna(subset=["date_local"], inplace=True)
         logger.info(
             "   - Converted 'date_local' to datetime. Dropped %d rows with invalid dates.",
-            before_drop - len(df)
+            before_drop - len(df),
         )
     else:
         logger.warning("   - 'date_local' column not found for datetime conversion.")
 
-    numeric_cols = ['arithmetic_mean', 'first_max_value', 'aqi']
+    numeric_cols = ["arithmetic_mean", "first_max_value", "aqi"]
     for col in numeric_cols:
         if col in df.columns:
-            df[col] = pd.to_numeric(df[col], errors='coerce')
+            df[col] = pd.to_numeric(df[col], errors="coerce")
             nan_count = df[col].isnull().sum()
             logger.info("   - Converted '%s' to numeric. NaNs: %d", col, nan_count)
         else:
@@ -86,24 +88,38 @@ def transform_data(df: pd.DataFrame) -> pd.DataFrame:
     df.dropna(subset=[col for col in numeric_cols if col in df.columns], inplace=True)
     dropped_rows = initial_rows - len(df)
     if dropped_rows > 0:
-        logger.info("   - Dropped %d rows with missing critical numeric values.", dropped_rows)
+        logger.info(
+            "   - Dropped %d rows with missing critical numeric values.", dropped_rows
+        )
 
     # --- Feature Engineering ---
-    if 'date_local' in df.columns:
-        df['year'] = df['date_local'].dt.year
-        df['month'] = df['date_local'].dt.month
-        df['day_of_week'] = df['date_local'].dt.dayofweek
-        df['day_of_year'] = df['date_local'].dt.dayofyear
+    if "date_local" in df.columns:
+        df["year"] = df["date_local"].dt.year
+        df["month"] = df["date_local"].dt.month
+        df["day_of_week"] = df["date_local"].dt.dayofweek
+        df["day_of_year"] = df["date_local"].dt.dayofyear
         logger.info("   - Added year, month, day_of_week, day_of_year features.")
 
-    if 'day_of_week' in df.columns:
-        df['is_weekend'] = df['day_of_week'].isin([5, 6]).astype(int)
+    if "day_of_week" in df.columns:
+        df["is_weekend"] = df["day_of_week"].isin([5, 6]).astype(int)
         logger.info("   - Added 'is_weekend' feature.")
 
     selected_columns = [
-        'date_local', 'arithmetic_mean', 'first_max_value', 'aqi',
-        'latitude', 'longitude', 'cbsa_code', 'state', 'county', 'city',
-        'year', 'month', 'day_of_week', 'day_of_year', 'is_weekend'
+        "date_local",
+        "arithmetic_mean",
+        "first_max_value",
+        "aqi",
+        "latitude",
+        "longitude",
+        "cbsa_code",
+        "state",
+        "county",
+        "city",
+        "year",
+        "month",
+        "day_of_week",
+        "day_of_year",
+        "is_weekend",
     ]
 
     df = df[[col for col in selected_columns if col in df.columns]]
@@ -116,8 +132,9 @@ def transform_data(df: pd.DataFrame) -> pd.DataFrame:
 
 
 @task(retries=3, retry_delay_seconds=10)
-def write_transformed_data_to_s3(df: pd.DataFrame, bucket_name: str,
-                                key_prefix: str, file_name: str):
+def write_transformed_data_to_s3(
+    df: pd.DataFrame, bucket_name: str, key_prefix: str, file_name: str
+):
     """
     Writes a Pandas DataFrame to S3 in Parquet format.
     """
@@ -131,7 +148,7 @@ def write_transformed_data_to_s3(df: pd.DataFrame, bucket_name: str,
     logger.info("📤 Uploading transformed data to s3://%s/%s", bucket_name, full_s3_key)
 
     try:
-        s3_client = boto3.client('s3')
+        s3_client = boto3.client("s3")
 
         parquet_buffer = io.BytesIO()
         df.to_parquet(parquet_buffer, index=False)
@@ -139,8 +156,11 @@ def write_transformed_data_to_s3(df: pd.DataFrame, bucket_name: str,
 
         s3_client.put_object(Bucket=bucket_name, Key=full_s3_key, Body=parquet_bytes)
 
-        logger.info("Successfully wrote transformed data to s3://%s/%s",
-                   bucket_name, full_s3_key)
+        logger.info(
+            "Successfully wrote transformed data to s3://%s/%s",
+            bucket_name,
+            full_s3_key,
+        )
     except Exception as e:
         logger.error("ERROR during S3 upload of transformed data: %s", e)
         traceback.print_exc()
@@ -182,7 +202,9 @@ def air_quality_transformation_flow(
 
 if __name__ == "__main__":
     input_bucket = os.getenv("S3_DATA_BUCKET_NAME")
-    output_bucket = os.getenv("S3_DATA_BUCKET_NAME")  # Usually same bucket but can differ
+    output_bucket = os.getenv(
+        "S3_DATA_BUCKET_NAME"
+    )  # Usually same bucket but can differ
 
     if not input_bucket or not output_bucket:
         raise ValueError("S3_DATA_BUCKET_NAME environment variable must be set in .env")

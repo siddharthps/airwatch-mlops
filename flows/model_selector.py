@@ -13,12 +13,11 @@ import json
 import logging
 import os
 from pathlib import Path
-from typing import Optional
 
 import boto3
-import mlflow
-from botocore.exceptions import ClientError, NoCredentialsError
 from boto3.exceptions import S3UploadFailedError
+from botocore.exceptions import ClientError, NoCredentialsError
+import mlflow
 from mlflow.artifacts import download_artifacts
 from mlflow.entities import Run
 from mlflow.exceptions import MlflowException
@@ -40,7 +39,7 @@ mlflow.set_tracking_uri(MLFLOW_URI)
 
 
 @task
-def get_best_non_overfit_run(experiment_name: str) -> Optional[Run]:
+def get_best_non_overfit_run(experiment_name: str) -> Run | None:
     """
     Find the best performing non-overfit model run from MLflow experiment.
 
@@ -63,15 +62,17 @@ def get_best_non_overfit_run(experiment_name: str) -> Optional[Run]:
             return None
 
         runs = client.search_runs(
-            [experiment.experiment_id],
-            order_by=["metrics.test_rmse ASC"]
+            [experiment.experiment_id], order_by=["metrics.test_rmse ASC"]
         )
 
         # Filter for valid (non-overfit) runs
         valid_runs = [
-            run for run in runs
-            if (run.data.metrics.get("val_rmse", 0) > 1e-4 and
-                "test_rmse" in run.data.metrics)
+            run
+            for run in runs
+            if (
+                run.data.metrics.get("val_rmse", 0) > 1e-4
+                and "test_rmse" in run.data.metrics
+            )
         ]
 
         if valid_runs:
@@ -92,7 +93,7 @@ def get_best_non_overfit_run(experiment_name: str) -> Optional[Run]:
 
 
 @task
-def download_model_artifacts(run_id: str, artifact_path: str) -> Optional[Path]:
+def download_model_artifacts(run_id: str, artifact_path: str) -> Path | None:
     """
     Download model artifacts from MLflow.
 
@@ -109,10 +110,7 @@ def download_model_artifacts(run_id: str, artifact_path: str) -> Optional[Path]:
     task_logger = get_run_logger()
 
     try:
-        model_dir = Path(download_artifacts(
-            run_id=run_id,
-            artifact_path=artifact_path
-        ))
+        model_dir = Path(download_artifacts(run_id=run_id, artifact_path=artifact_path))
         task_logger.info("Successfully downloaded model artifacts to %s", model_dir)
         return model_dir
     except MlflowException as e:
@@ -139,12 +137,12 @@ def upload_files_to_s3(model_dir: Path, run_id: str, bucket: str, prefix: str) -
         NoCredentialsError: If AWS credentials are not available
     """
     task_logger = get_run_logger()
-    
+
     # Check if directory exists
     if not model_dir.exists() or not model_dir.is_dir():
         task_logger.error("Model directory does not exist: %s", model_dir)
         return False
-    
+
     s3_client = boto3.client("s3")
     upload_successful = True
 
@@ -174,8 +172,9 @@ def upload_files_to_s3(model_dir: Path, run_id: str, bucket: str, prefix: str) -
 
 
 @task
-def create_and_upload_model_summary(run: Run, model_dir: Path, bucket: str,
-                                  prefix: str) -> bool:
+def create_and_upload_model_summary(
+    run: Run, model_dir: Path, bucket: str, prefix: str
+) -> bool:
     """
     Create model summary JSON and upload to S3.
 
@@ -207,7 +206,7 @@ def create_and_upload_model_summary(run: Run, model_dir: Path, bucket: str,
 
     try:
         # Write summary to file
-        with open(summary_file, "w", encoding="utf-8") as f:
+        with summary_file.open("w", encoding="utf-8") as f:
             json.dump(summary, f, indent=2)
 
         # Upload to S3
@@ -261,7 +260,9 @@ def upload_model_and_summary_to_s3(run: Run, bucket: str, prefix: str) -> bool:
 
         upload_successful = files_uploaded and summary_uploaded
         if upload_successful:
-            task_logger.info("Successfully uploaded model and summary for run %s", run_id)
+            task_logger.info(
+                "Successfully uploaded model and summary for run %s", run_id
+            )
         else:
             task_logger.warning("Partial failure uploading model for run %s", run_id)
 
@@ -291,11 +292,13 @@ def model_selection_flow() -> bool:
             task_logger.info(
                 "Found best model run: %s with test RMSE: %.4f",
                 best_run.info.run_id,
-                best_run.data.metrics.get("test_rmse", 0)
+                best_run.data.metrics.get("test_rmse", 0),
             )
 
             # Upload model and summary
-            upload_successful = upload_model_and_summary_to_s3(best_run, S3_BUCKET, S3_PREFIX)
+            upload_successful = upload_model_and_summary_to_s3(
+                best_run, S3_BUCKET, S3_PREFIX
+            )
 
             if upload_successful:
                 task_logger.info("Model selection flow completed successfully")
@@ -313,5 +316,7 @@ def model_selection_flow() -> bool:
 
 
 if __name__ == "__main__":
+    import sys
+
     FLOW_SUCEESS = model_selection_flow()
-    exit(0 if FLOW_SUCEESS else 1)
+    sys.exit(0 if FLOW_SUCEESS else 1)

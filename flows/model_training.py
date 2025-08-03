@@ -8,16 +8,16 @@ to predict air quality metrics using processed PM2.5 data.
 import io
 import math
 import os
-from typing import Dict, List, Tuple, Any
+from typing import Any
 
 import boto3
-import mlflow
-import mlflow.sklearn
-from mlflow.exceptions import MlflowException
-import pandas as pd
 from botocore.config import Config
 from dotenv import load_dotenv
-from prefect import flow, task, get_run_logger
+import mlflow
+from mlflow.exceptions import MlflowException
+import mlflow.sklearn
+import pandas as pd
+from prefect import flow, get_run_logger, task
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_squared_error
@@ -35,11 +35,11 @@ MLFLOW_S3_ENDPOINT_URL = os.getenv("MLFLOW_S3_ENDPOINT_URL")
 MLFLOW_ARTIFACT_LOCATION = os.getenv("MLFLOW_ARTIFACT_LOCATION")
 
 # Set boto3 default config to ensure correct region and addressing style
-BOTO3_CONFIG = Config(region_name=AWS_REGION, s3={'addressing_style': 'virtual'})
+BOTO3_CONFIG = Config(region_name=AWS_REGION, s3={"addressing_style": "virtual"})
 
 # Setup boto3 session and clients globally
 boto3.setup_default_session(region_name=AWS_REGION)
-s3_client = boto3.client('s3', config=BOTO3_CONFIG)
+s3_client = boto3.client("s3", config=BOTO3_CONFIG)
 
 # Set MLflow tracking URI globally for this script
 mlflow.set_tracking_uri(MLFLOW_TRACKING_URI)
@@ -64,8 +64,10 @@ def load_processed_data_from_s3(bucket_name: str, file_key: str) -> pd.DataFrame
     logger.info("📥 Loading data from s3://%s/%s", bucket_name, file_key)
     try:
         response = s3_client.get_object(Bucket=bucket_name, Key=file_key)
-        data_frame = pd.read_parquet(io.BytesIO(response['Body'].read()))
-        logger.info("✅ Loaded %d records. Shape: %s", len(data_frame), data_frame.shape)
+        data_frame = pd.read_parquet(io.BytesIO(response["Body"].read()))
+        logger.info(
+            "✅ Loaded %d records. Shape: %s", len(data_frame), data_frame.shape
+        )
         return data_frame
     except Exception as exc:
         logger.exception("❌ Failed to load data from S3")
@@ -77,9 +79,9 @@ def split_data(
     data_frame: pd.DataFrame,
     test_size: float = 0.2,
     random_state: int = 42,
-    features: List[str] = None,
-    target: str = 'arithmetic_mean'
-) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.Series, pd.Series, pd.Series]:
+    features: list[str] | None = None,
+    target: str = "arithmetic_mean",
+) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.Series, pd.Series, pd.Series]:
     """
     Split data into train/validation/test sets.
 
@@ -105,8 +107,13 @@ def split_data(
 
     # Default features (removed 'aqi' to prevent data leakage with 'arithmetic_mean' target)
     default_features = [
-        'latitude', 'longitude', 'year', 'month', 'day_of_week', 'day_of_year',
-        'is_weekend'
+        "latitude",
+        "longitude",
+        "year",
+        "month",
+        "day_of_week",
+        "day_of_year",
+        "is_weekend",
     ]
 
     features = features or default_features
@@ -122,10 +129,13 @@ def split_data(
             f"Available columns: {available_cols}"
         )
 
-    df_clean = data_frame[features + [target]].dropna()
+    df_clean = data_frame[[*features, target]].dropna()
     removed_rows = len(data_frame) - len(df_clean)
-    logger.info("Cleaned data shape: %s (removed %d rows with NaN)",
-                df_clean.shape, removed_rows)
+    logger.info(
+        "Cleaned data shape: %s (removed %d rows with NaN)",
+        df_clean.shape,
+        removed_rows,
+    )
 
     feature_matrix = df_clean[features]
     target_vector = df_clean[target]
@@ -140,8 +150,9 @@ def split_data(
         x_train_val, y_train_val, test_size=0.25, random_state=random_state
     )
 
-    logger.info("   - Train: %d | Val: %d | Test: %d",
-                len(x_train), len(x_val), len(x_test))
+    logger.info(
+        "   - Train: %d | Val: %d | Test: %d", len(x_train), len(x_val), len(x_test)
+    )
     return x_train, x_val, x_test, y_train, y_val, y_test
 
 
@@ -154,8 +165,8 @@ def train_and_log_model(
     x_val: pd.DataFrame,
     y_val: pd.Series,
     x_test: pd.DataFrame,
-    y_test: pd.Series
-) -> Dict[str, Any]:
+    y_test: pd.Series,
+) -> dict[str, Any]:
     """
     Train a model and log results to MLflow.
 
@@ -177,8 +188,7 @@ def train_and_log_model(
     # Set MLflow experiment with artifact location
     try:
         mlflow.create_experiment(
-            "air_quality_model_training",
-            artifact_location=MLFLOW_ARTIFACT_LOCATION
+            "air_quality_model_training", artifact_location=MLFLOW_ARTIFACT_LOCATION
         )
     except MlflowException as mlflow_exc:
         # Experiment probably exists, log if it's not the "already exists" error
@@ -198,7 +208,7 @@ def train_and_log_model(
         rmse_test = math.sqrt(mean_squared_error(y_test, preds_test))
 
         # Log params if available (e.g., for RandomForest, XGBoost)
-        if hasattr(model, 'get_params'):
+        if hasattr(model, "get_params"):
             mlflow.log_params(model.get_params())
 
         mlflow.sklearn.log_model(model, artifact_path="model")
@@ -206,19 +216,23 @@ def train_and_log_model(
         mlflow.log_metric("val_rmse", rmse_val)
         mlflow.log_metric("test_rmse", rmse_test)
 
-        logger.info("✅ %s trained. Val RMSE: %.4f, Test RMSE: %.4f",
-                    model_name, rmse_val, rmse_test)
+        logger.info(
+            "✅ %s trained. Val RMSE: %.4f, Test RMSE: %.4f",
+            model_name,
+            rmse_val,
+            rmse_test,
+        )
 
         return {
             "model_name": model_name,
             "run_id": run.info.run_id,
             "val_rmse": rmse_val,
-            "test_rmse": rmse_test
+            "test_rmse": rmse_test,
         }
 
 
 @flow(name="Model Training Flow")
-def train_models() -> List[Dict[str, Any]]:
+def train_models() -> list[dict[str, Any]]:
     """
     Main flow for training multiple models.
 
@@ -236,12 +250,11 @@ def train_models() -> List[Dict[str, Any]]:
 
     models = [
         ("LinearRegression", LinearRegression()),
-        ("RandomForest", RandomForestRegressor(
-            n_estimators=100, random_state=42, n_jobs=-1
-        )),
-        ("XGBoost", XGBRegressor(
-            n_estimators=100, random_state=42, n_jobs=-1
-        ))
+        (
+            "RandomForest",
+            RandomForestRegressor(n_estimators=100, random_state=42, n_jobs=-1),
+        ),
+        ("XGBoost", XGBRegressor(n_estimators=100, random_state=42, n_jobs=-1)),
     ]
 
     results = []
@@ -263,4 +276,3 @@ if __name__ == "__main__":
     # when you run this script. No need to explicitly set os.environ here if .env is loaded.
     training_results = train_models()
     print("✅ Training complete. Results printed in Prefect logs and above.")
-    

@@ -2,10 +2,13 @@
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
+[tool.hatch.build.targets.wheel]
+packages = ["flows"]
+
 [project]
-name = "air-quality-ml-project"
+name = "airwatch-mlops"
 version = "0.0.1"
-description = "MLOps project on Air Quality data"
+description = "MLOps pipeline for air quality prediction and monitoring"
 authors = [
   { name = "Siddharth Puranam" },
 ]
@@ -116,17 +119,33 @@ docs = [
 ]
 
 all = [
-    "air-quality-ml-project[dev,test,docs]"
+    "airwatch-mlops[dev,test,docs]"
 ]
 
-[project.scripts]
-run-tests = "run_tests:main"
+# Remove scripts section since we don't have a main package
 
 [tool.ruff]
 # Ruff configuration - replaces black, isort, flake8, pylint
-line-length = 88  # Changed from 99 to standard 88
+line-length = 88
 target-version = "py310"
 
+# Exclude directories
+exclude = [
+    ".git",
+    ".venv",
+    ".env",
+    "venv",
+    "env",
+    "__pycache__",
+    ".pytest_cache",
+    ".coverage",
+    "htmlcov",
+    "build",
+    "dist",
+    "*.egg-info",
+]
+
+[tool.ruff.lint]
 # Enable specific rule sets
 select = [
     "E",    # pycodestyle errors
@@ -155,22 +174,7 @@ ignore = [
     "SIM108",  # Use ternary operator instead of if-else-block
     "C901",    # Function is too complex
     "PLR0912", # Too many branches
-]
-
-# Exclude directories
-exclude = [
-    ".git",
-    ".venv",
-    ".env",
-    "venv",
-    "env",
-    "__pycache__",
-    ".pytest_cache",
-    ".coverage",
-    "htmlcov",
-    "build",
-    "dist",
-    "*.egg-info",
+    "PLC0415", # Import should be at top-level (we have some intentional local imports)
 ]
 
 [tool.ruff.format]
@@ -183,20 +187,20 @@ skip-magic-trailing-comma = false
 # Automatically detect line ending
 line-ending = "auto"
 
-[tool.ruff.isort]
+[tool.ruff.lint.isort]
 # Import sorting configuration
-known-first-party = ["air_quality_ml_project", "flows"]
+known-first-party = ["flows"]
 force-sort-within-sections = true
 split-on-trailing-comma = true
 
-[tool.ruff.pylint]
+[tool.ruff.lint.pylint]
 # Pylint-specific configuration
 max-args = 8  # Increased from 7 for test methods
 max-branches = 15  # Increased from 14
 max-returns = 6
 max-statements = 60  # Increased from 55 for test methods
 
-[tool.ruff.per-file-ignores]
+[tool.ruff.lint.per-file-ignores]
 # Ignore specific rules for test files
 "tests/*" = [
     "ARG001",  # Unused function argument (common in fixtures)
@@ -212,6 +216,7 @@ max-statements = 60  # Increased from 55 for test methods
 "flows/*" = [
     "T201",    # print statements allowed in flows
     "PLR0913", # Many arguments allowed for task functions
+    "PLC0415", # Allow local imports in flows (for mlflow, etc.)
 ]
 
 [tool.pytest.ini_options]

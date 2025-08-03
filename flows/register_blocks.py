@@ -7,7 +7,6 @@ S3 bucket blocks that can be referenced in Prefect flows.
 """
 
 import os
-from typing import Optional
 
 from dotenv import load_dotenv
 from prefect_aws.s3 import S3Bucket
@@ -33,12 +32,14 @@ def load_aws_credentials() -> tuple[str, str, str, str]:
 
     if not all([bucket_name, aws_key, aws_secret, region]):
         missing_vars = [
-            var for var, val in [
+            var
+            for var, val in [
                 ("S3_DATA_BUCKET_NAME", bucket_name),
                 ("AWS_ACCESS_KEY_ID", aws_key),
                 ("AWS_SECRET_ACCESS_KEY", aws_secret),
-                ("AWS_REGION", region)
-            ] if not val
+                ("AWS_REGION", region),
+            ]
+            if not val
         ]
         raise ValueError(
             f"Missing required AWS environment variables: {', '.join(missing_vars)}"
@@ -52,8 +53,8 @@ def register_s3_block(
     aws_access_key_id: str,
     aws_secret_access_key: str,
     region_name: str,
-    block_name: Optional[str] = None,
-    overwrite: bool = True
+    block_name: str | None = None,
+    overwrite: bool = True,
 ) -> None:
     """
     Register an S3 bucket block in Prefect.
@@ -78,7 +79,7 @@ def register_s3_block(
             bucket_name=bucket_name,
             aws_access_key_id=aws_access_key_id,
             aws_secret_access_key=aws_secret_access_key,
-            region_name=region_name
+            region_name=region_name,
         )
 
         s3_block.save(name=block_name, overwrite=overwrite)
@@ -107,4 +108,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-    

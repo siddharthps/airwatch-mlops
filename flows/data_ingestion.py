@@ -2,18 +2,18 @@
 Prefect flow to fetch EPA AQS PM2.5 data and upload it to S3 using the Prefect AWS block.
 """
 
-import os
 import io
+import os
 import time
 import traceback
-import requests
-import pandas as pd
 
 from dotenv import load_dotenv
+import pandas as pd
 
 # Prefect imports
 from prefect import flow, task
 from prefect_aws import S3Bucket
+import requests
 
 # --- Load environment variables from .env file ---
 load_dotenv()
@@ -43,7 +43,7 @@ def fetch_epa_aqs_data(
     end_year: int,
     param_code: str,
     cbsa_code: str,
-    sleep_time: int
+    sleep_time: int,
 ) -> pd.DataFrame:
     """
     Fetches daily PM2.5 data for a given CBSA from the EPA AQS API for multiple years.
@@ -76,7 +76,9 @@ def fetch_epa_aqs_data(
                     print(f"API response for {year} is an empty list, no data.")
                     continue
                 df = pd.DataFrame(data)
-                print(f"Successfully fetched {len(df)} records for {year} (list response).")
+                print(
+                    f"Successfully fetched {len(df)} records for {year} (list response)."
+                )
                 all_data_frames.append(df)
 
             elif isinstance(data, dict):
@@ -85,22 +87,26 @@ def fetch_epa_aqs_data(
                     header
                     and isinstance(header, list)
                     and header[0].get("status") == "No data meets your criteria"
-                    ):
+                ):
                     print(f"No data found for {year}.")
                     continue
 
                 if "Data" in data and isinstance(data["Data"], list):
                     df = pd.DataFrame(data["Data"])
-                    print(f"Successfully fetched {len(df)} records for {year} (dict response).")
+                    print(
+                        f"Successfully fetched {len(df)} records for {year} (dict response)."
+                    )
                     all_data_frames.append(df)
                 else:
-                    print(f"API response for {year} is a dict but has no valid 'Data' key: {data}")
+                    print(
+                        f"API response for {year} is a dict but has no valid 'Data' key: {data}"
+                    )
 
             else:
                 print(
                     f"Unexpected API response format for {year}: "
                     f"Expected dict or list, got {type(data)}: {data}"
-                    )
+                )
 
         except requests.exceptions.RequestException as e:
             print(f"HTTP Error fetching data for {year}: {e}")
@@ -109,7 +115,7 @@ def fetch_epa_aqs_data(
             print(f"Raw response text: {response.text}")
         except Exception as e:
             print(f"An unexpected error occurred for {year}: {e}")
-            raise   # re-raises the exception after logging
+            raise  # re-raises the exception after logging
 
         if year < end_year:
             print(f"Waiting for {sleep_time} seconds before next year's request...")
@@ -121,8 +127,8 @@ def fetch_epa_aqs_data(
 
     combined_df = pd.concat(all_data_frames, ignore_index=True)
 
-    if 'date_local' in combined_df.columns:
-        combined_df['date_local'] = pd.to_datetime(combined_df['date_local'])
+    if "date_local" in combined_df.columns:
+        combined_df["date_local"] = pd.to_datetime(combined_df["date_local"])
 
     print(f"Combined raw data shape: {combined_df.shape}")
     print(f"Columns in raw DataFrame: {combined_df.columns.tolist()}")
@@ -133,7 +139,9 @@ def fetch_epa_aqs_data(
 
 
 @task
-def write_data_to_s3(df: pd.DataFrame, bucket_block_name: str, key_prefix: str, file_name: str):
+def write_data_to_s3(
+    df: pd.DataFrame, bucket_block_name: str, key_prefix: str, file_name: str
+):
     """
     Uploads a Pandas DataFrame to an S3 bucket using a Prefect S3Bucket block.
     """
@@ -172,7 +180,7 @@ def air_quality_ingestion_flow():
     if not epa_aqs_email or not epa_aqs_api_key:
         raise ValueError(
             "EPA_AQS_EMAIL and EPA_AQS_API_KEY environment variables must be set in .env"
-            )
+        )
 
     df = fetch_epa_aqs_data(
         email=epa_aqs_email,
@@ -181,14 +189,14 @@ def air_quality_ingestion_flow():
         end_year=END_YEAR,
         param_code=PM25_PARAMETER_CODE,
         cbsa_code=CBSA_CODE,
-        sleep_time=SLEEP_TIME_SECONDS
+        sleep_time=SLEEP_TIME_SECONDS,
     )
 
     write_data_to_s3(
         df=df,
         bucket_block_name=OUTPUT_S3_BUCKET_NAME,
         key_prefix=S3_KEY_PREFIX,
-        file_name=f"pm25_daily_{START_YEAR}_{END_YEAR}"
+        file_name=f"pm25_daily_{START_YEAR}_{END_YEAR}",
     )
 
     print("EPA AQS Data Ingestion Flow finished.")

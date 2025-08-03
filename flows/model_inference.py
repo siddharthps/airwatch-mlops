@@ -7,18 +7,18 @@ This module orchestrates the batch prediction process by:
 3. Generating and saving predictions
 """
 
+from datetime import datetime
 import io
 import os
 import traceback
-from datetime import datetime
 
 import boto3
-import pandas as pd
 from botocore.config import Config
 from dotenv import load_dotenv
+import pandas as pd
 
 # Prefect imports
-from prefect import flow, task, get_run_logger
+from prefect import flow, get_run_logger, task
 
 # Import the inference data preparation flow/tasks
 from flows.inference_data_preparation import inference_data_preparation_flow
@@ -38,9 +38,9 @@ BEST_MODEL_S3_PATH = (
 )
 
 # Set boto3 default config globally
-boto3_config = Config(region_name=AWS_REGION, s3={'addressing_style': 'virtual'})
+boto3_config = Config(region_name=AWS_REGION, s3={"addressing_style": "virtual"})
 boto3.setup_default_session(region_name=AWS_REGION)
-s3_client = boto3.client('s3', config=boto3_config)
+s3_client = boto3.client("s3", config=boto3_config)
 
 
 @task
@@ -93,12 +93,13 @@ def load_processed_inference_data_from_s3(
     """
     logger = get_run_logger()
     s3_key = f"{key_prefix}/{file_name}.parquet"
-    logger.info("📥 Loading processed inference data from s3://%s/%s",
-                bucket_name, s3_key)
+    logger.info(
+        "📥 Loading processed inference data from s3://%s/%s", bucket_name, s3_key
+    )
 
     try:
         response = s3_client.get_object(Bucket=bucket_name, Key=s3_key)
-        df = pd.read_parquet(io.BytesIO(response['Body'].read()))
+        df = pd.read_parquet(io.BytesIO(response["Body"].read()))
         logger.info("Loaded %d records for inference.", len(df))
         return df
     except Exception as e:
@@ -126,20 +127,25 @@ def generate_predictions(model, data_df: pd.DataFrame) -> pd.DataFrame:
     logger = get_run_logger()
 
     if data_df.empty:
-        logger.warning("Input DataFrame for prediction is empty, "
-                      "returning empty DataFrame.")
+        logger.warning(
+            "Input DataFrame for prediction is empty, returning empty DataFrame."
+        )
         return pd.DataFrame()
 
     # Define the exact features the model was trained on
     # This must match `split_data` in `model_training.py`
     features_for_prediction = [
-        'latitude', 'longitude', 'year', 'month', 'day_of_week', 'day_of_year',
-        'is_weekend'
+        "latitude",
+        "longitude",
+        "year",
+        "month",
+        "day_of_week",
+        "day_of_year",
+        "is_weekend",
     ]
 
     # Ensure the input DataFrame contains all required features
-    missing_features = [f for f in features_for_prediction
-                       if f not in data_df.columns]
+    missing_features = [f for f in features_for_prediction if f not in data_df.columns]
     if missing_features:
         error_msg = f"Missing required features for prediction: {missing_features}"
         logger.error("%s", error_msg)
@@ -155,7 +161,7 @@ def generate_predictions(model, data_df: pd.DataFrame) -> pd.DataFrame:
         predictions = model.predict(x_predict)
         # Add predictions to a new DataFrame or to the original data_df
         predictions_df = data_df.copy()
-        predictions_df['predicted_arithmetic_mean'] = predictions
+        predictions_df["predicted_arithmetic_mean"] = predictions
         logger.info("Predictions generated successfully.")
         return predictions_df
     except Exception as e:
@@ -165,8 +171,9 @@ def generate_predictions(model, data_df: pd.DataFrame) -> pd.DataFrame:
 
 
 @task(retries=3, retry_delay_seconds=10)
-def save_predictions_to_s3(df_predictions: pd.DataFrame, bucket_name: str,
-                          target_year: int):
+def save_predictions_to_s3(
+    df_predictions: pd.DataFrame, bucket_name: str, target_year: int
+):
     """
     Save the DataFrame with predictions to S3.
 
@@ -197,12 +204,11 @@ def save_predictions_to_s3(df_predictions: pd.DataFrame, bucket_name: str,
         df_predictions.to_parquet(buffer, index=False)
         buffer.seek(0)
         s3_client.put_object(
-            Bucket=bucket_name,
-            Key=full_s3_key,
-            Body=buffer.getvalue()
+            Bucket=bucket_name, Key=full_s3_key, Body=buffer.getvalue()
         )
-        logger.info("Successfully saved predictions to s3://%s/%s",
-                   bucket_name, full_s3_key)
+        logger.info(
+            "Successfully saved predictions to s3://%s/%s", bucket_name, full_s3_key
+        )
     except Exception as e:
         logger.error("Failed to save predictions to S3: %s", e)
         traceback.print_exc()
@@ -210,7 +216,7 @@ def save_predictions_to_s3(df_predictions: pd.DataFrame, bucket_name: str,
 
 
 @flow(name="Model Batch Prediction Flow")
-def model_batch_prediction_flow(inference_year: int = None):
+def model_batch_prediction_flow(inference_year: int | None = None):
     """
     Orchestrate the entire batch prediction process.
 
@@ -231,21 +237,24 @@ def model_batch_prediction_flow(inference_year: int = None):
 
     if inference_year is None:
         inference_year = datetime.now().year
-        logger.info("No inference_year specified. Defaulting to current year: %d",
-                   inference_year)
+        logger.info(
+            "No inference_year specified. Defaulting to current year: %d",
+            inference_year,
+        )
     else:
         logger.info("Running prediction for year: %d", inference_year)
 
     # 1. Prepare new data for inference
     processed_inference_df_future = inference_data_preparation_flow(
         target_year=inference_year,
-        return_state=True  # Required to get the result of the flow
+        return_state=True,  # Required to get the result of the flow
     )
     processed_inference_df = processed_inference_df_future.result()
 
     if processed_inference_df.empty:
-        logger.warning("No data available for inference after preparation. "
-                      "Aborting prediction.")
+        logger.warning(
+            "No data available for inference after preparation. Aborting prediction."
+        )
         return None
 
     # 2. Load the best model from S3
@@ -265,4 +274,3 @@ if __name__ == "__main__":
     # Example: Run batch prediction for 2025 data
     model_batch_prediction_flow(inference_year=2025)
     # To run for current year: model_batch_prediction_flow()
-    

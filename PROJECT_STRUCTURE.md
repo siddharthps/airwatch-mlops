@@ -65,15 +65,18 @@ airwatch-mlops/
 ## Key Files
 
 ### Configuration
+
 - **pyproject.toml**: Python project metadata, dependencies, and tool configuration
 - **.env.example**: Template for environment variables (copy to .env)
 - **Makefile**: Common development tasks and commands
 
 ### Core Workflows
+
 - **flows/**: All Prefect workflows for the MLOps pipeline
 - **tests/**: Comprehensive test suite with mocking for AWS services
 
 ### Data Management
+
 - **data/**: Structured data storage following data science conventions
 - **models/**: Trained model artifacts and metadata
 - **reports/**: Generated monitoring and analysis reports

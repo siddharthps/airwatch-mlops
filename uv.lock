@@ -22,7 +22,7 @@ wheels = [
 ]
 
 [[package]]
-name = "air-quality-ml-project"
+name = "airwatch-mlops"
 version = "0.0.1"
 source = { editable = "." }
 dependencies = [
@@ -114,7 +114,7 @@ test = [
 
 [package.metadata]
 requires-dist = [
-    { name = "air-quality-ml-project", extras = ["dev", "test", "docs"], marker = "extra == 'all'" },
+    { name = "airwatch-mlops", extras = ["dev", "test", "docs"], marker = "extra == 'all'" },
     { name = "awscli", specifier = ">=1.29.0" },
     { name = "boto3", specifier = ">=1.28.0" },
     { name = "evidently", specifier = "==0.6.7" },

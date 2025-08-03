@@ -1,7 +1,8 @@
-import mlflow
 import os
-from sklearn.linear_model import LinearRegression
+
+import mlflow
 from sklearn.datasets import make_regression
+from sklearn.linear_model import LinearRegression
 
 # Load .env variables
 mlflow.set_tracking_uri(os.getenv("MLFLOW_TRACKING_URI"))
