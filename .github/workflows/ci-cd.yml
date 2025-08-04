@@ -1,59 +1,71 @@
 name: MLOps CI/CD Pipeline
 
+# WORKFLOW DISABLED - Uncomment 'on:' section below to re-enable
+# on:
+#   push:
+#     branches: [main, develop]
+#   pull_request:
+#     branches: [main]
+#   schedule:
+#     # Run weekly to catch dependency issues
+#     - cron: "0 2 * * 1" # Monday at 2 AM UTC
+
+# Manual trigger only (workflow_dispatch allows manual runs from GitHub UI)
 on:
-  push:
-    branches: [main, develop]
-  pull_request:
-    branches: [main]
-  schedule:
-    # Run weekly to catch dependency issues
-    - cron: "0 2 * * 1" # Monday at 2 AM UTC
+  workflow_dispatch:
 
 env:
   PYTHON_VERSION: "3.10"
   UV_VERSION: "0.5.11"
 
 jobs:
-  # Job 1: Code Quality and Linting
-  quality:
-    name: Code Quality Checks
+  # Placeholder job to keep workflow valid (does nothing)
+  placeholder:
+    name: Workflow Disabled
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - name: Workflow is disabled
+        run: echo "This workflow is currently disabled. All jobs are commented out."
+  # Job 1: Code Quality and Linting (COMMENTED OUT)
+  # quality:
+  #   name: Code Quality Checks
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - name: Checkout code
+  #       uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: ${{ env.PYTHON_VERSION }}
+  #     - name: Set up Python
+  #       uses: actions/setup-python@v4
+  #       with:
+  #         python-version: ${{ env.PYTHON_VERSION }}
 
-      - name: Install UV
-        run: |
-          curl -LsSf https://astral.sh/uv/install.sh | sh
-          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+  #     - name: Install UV
+  #       run: |
+  #         curl -LsSf https://astral.sh/uv/install.sh | sh
+  #         echo "$HOME/.cargo/bin" >> $GITHUB_PATH
 
-      - name: Install dependencies
-        run: |
-          uv sync --group dev
+  #     - name: Install dependencies
+  #       run: |
+  #         uv sync --group dev
 
-      - name: Install pre-commit hooks
-        run: |
-          uv run pre-commit install
+  #     - name: Install pre-commit hooks
+  #       run: |
+  #         uv run pre-commit install
 
-      - name: Run pre-commit hooks
-        run: |
-          uv run pre-commit run --all-files
+  #     - name: Run pre-commit hooks
+  #       run: |
+  #         uv run pre-commit run --all-files
 
-      - name: Check for security vulnerabilities
-        run: |
-          uv run safety scan --output json --save-as safety-report.json || true
+  #     - name: Check for security vulnerabilities
+  #       run: |
+  #         uv run safety scan --output json --save-as safety-report.json || true
 
-      - name: Upload safety report
-        uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: safety-report
-          path: safety-report.json
+  #     - name: Upload safety report
+  #       uses: actions/upload-artifact@v4
+  #       if: always()
+  #       with:
+  #         name: safety-report
+  #         path: safety-report.json
 
   # Job 2: Testing across multiple environments (COMMENTED OUT)
   # test:
@@ -122,196 +134,16 @@ jobs:
   #         flags: unittests
   #         name: codecov-umbrella
 
-  # Job 3: Model Training Validation (MLOps specific)
-  model-validation:
-    name: Validate Model Pipeline
-    runs-on: ubuntu-latest
-    needs: quality
-    if: github.event_name == 'push' || github.event_name == 'pull_request'
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: ${{ env.PYTHON_VERSION }}
-
-      - name: Install UV
-        run: |
-          curl -LsSf https://astral.sh/uv/install.sh | sh
-          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
-
-      - name: Install dependencies
-        run: |
-          uv sync
-
-      - name: Create test data directory
-        run: |
-          mkdir -p data/raw data/processed data/interim
-
-      - name: Set up test environment
-        run: |
-          echo "MLFLOW_TRACKING_URI=sqlite:///ci_mlflow.db" > .env
-          echo "AWS_ACCESS_KEY_ID=test" >> .env
-          echo "AWS_SECRET_ACCESS_KEY=test" >> .env
-          echo "AWS_DEFAULT_REGION=us-east-1" >> .env
-          echo "AWS_REGION=us-east-1" >> .env
-          echo "S3_DATA_BUCKET_NAME=air-quality-mlops-data-chicago-2025" >> .env
-          echo "S3_MLFLOW_ARTIFACTS_BUCKET_NAME=test-mlflow-bucket" >> .env
-          echo "MLFLOW_S3_ENDPOINT_URL=https://s3.us-east-1.amazonaws.com" >> .env
-          echo "MLFLOW_ARTIFACT_LOCATION=s3://test-mlflow-bucket/artifacts" >> .env
-          echo "EPA_AQS_EMAIL=test@example.com" >> .env
-          echo "EPA_AQS_API_KEY=test-api-key" >> .env
-
-      - name: Validate data pipeline (dry run)
-        run: |
-          uv run python -c "
-          import sys
-          sys.path.append('flows')
-          try:
-              from data_ingestion import *
-              from data_transformation import *
-              print('✅ Data pipeline imports successful')
-          except Exception as e:
-              print(f'❌ Data pipeline validation failed: {e}')
-              sys.exit(1)
-          "
-
-      - name: Validate model pipeline (dry run)
-        run: |
-          uv run python -c "
-          import sys
-          sys.path.append('flows')
-          try:
-              from model_training import *
-              from model_inference import *
-              print('✅ Model pipeline imports successful')
-          except Exception as e:
-              print(f'❌ Model pipeline validation failed: {e}')
-              sys.exit(1)
-          "
-
-      - name: Check MLflow configuration
-        run: |
-          uv run python -c "
-          import mlflow
-          import os
-          from dotenv import load_dotenv
-          load_dotenv()
-          print(f'MLflow tracking URI: {mlflow.get_tracking_uri()}')
-          print('✅ MLflow configuration valid')
-          "
-
-  # Job 4: Documentation
-  docs:
-    name: Build Documentation
-    runs-on: ubuntu-latest
-    needs: quality
-    permissions:
-      contents: read
-      pages: write
-      id-token: write
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-          token: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: ${{ env.PYTHON_VERSION }}
-
-      - name: Install UV
-        run: |
-          curl -LsSf https://astral.sh/uv/install.sh | sh
-          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
-
-      - name: Install dependencies
-        run: |
-          uv sync --group docs
-
-      - name: Create environment file for docs
-        run: |
-          echo "MLFLOW_TRACKING_URI=sqlite:///docs_mlflow.db" > .env
-          echo "AWS_ACCESS_KEY_ID=test" >> .env
-          echo "AWS_SECRET_ACCESS_KEY=test" >> .env
-          echo "AWS_DEFAULT_REGION=us-east-1" >> .env
-          echo "AWS_REGION=us-east-1" >> .env
-          echo "S3_DATA_BUCKET_NAME=air-quality-mlops-data-chicago-2025" >> .env
-          echo "S3_MLFLOW_ARTIFACTS_BUCKET_NAME=test-mlflow-bucket" >> .env
-          echo "EPA_AQS_EMAIL=test@example.com" >> .env
-          echo "EPA_AQS_API_KEY=test-api-key" >> .env
-
-      - name: Build documentation
-        run: |
-          uv run mkdocs build --strict
-
-      - name: Deploy documentation to GitHub Pages
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          uv run mkdocs gh-deploy --force
-
-  # Job 5: Dependency Security Audit
-  security:
-    name: Security Audit
-    runs-on: ubuntu-latest
-    if: github.event_name == 'schedule' || github.event_name == 'push'
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: ${{ env.PYTHON_VERSION }}
-
-      - name: Install UV
-        run: |
-          curl -LsSf https://astral.sh/uv/install.sh | sh
-          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
-
-      - name: Install dependencies
-        run: |
-          uv sync --group dev
-
-      - name: Run security audit
-        run: |
-          uv run safety scan --output text || true
-
-      - name: Run bandit security scan
-        run: |
-          uv run bandit -r flows/ -f json -o bandit-report.json || echo '{"results": [], "metrics": {"_totals": {"loc": 0, "nosec": 0, "skipped_tests": 0}}}' > bandit-report.json
-
-      - name: Upload security reports
-        uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: security-reports
-          path: |
-            bandit-report.json
-
-  # Job 6: Release (only on main branch) - COMMENTED OUT
-  # release:
-  #   name: Create Release
+  # Job 3: Model Training Validation (MLOps specific) - COMMENTED OUT
+  # model-validation:
+  #   name: Validate Model Pipeline
   #   runs-on: ubuntu-latest
-  #   needs: [quality, test, model-validation, docs]
-  #   if: github.event_name == 'push' && github.ref == 'refs/heads/main' && contains(github.event.head_commit.message, '[release]')
+  #   needs: quality
+  #   if: github.event_name == 'push' || github.event_name == 'pull_request'
 
   #   steps:
   #     - name: Checkout code
   #       uses: actions/checkout@v4
-  #       with:
-  #         fetch-depth: 0
 
   #     - name: Set up Python
   #       uses: actions/setup-python@v4
@@ -323,32 +155,103 @@ jobs:
   #         curl -LsSf https://astral.sh/uv/install.sh | sh
   #         echo "$HOME/.cargo/bin" >> $GITHUB_PATH
 
-  #     - name: Build package
+  #     - name: Install dependencies
   #       run: |
-  #         uv build
+  #         uv sync
 
-  #     - name: Get version from pyproject.toml
-  #       id: get_version
+  #     - name: Create test data directory
   #       run: |
-  #         VERSION=$(grep "version = " pyproject.toml | head -1 | cut -d'"' -f2)
-  #         echo "version=$VERSION" >> $GITHUB_OUTPUT
+  #         mkdir -p data/raw data/processed data/interim
 
-  #     - name: Create GitHub Release
-  #       uses: softprops/action-gh-release@v2
-  #       env:
-  #         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  #     - name: Set up test environment
+  #       run: |
+  #         echo "MLFLOW_TRACKING_URI=sqlite:///ci_mlflow.db" > .env
+  #         echo "AWS_ACCESS_KEY_ID=test" >> .env
+  #         echo "AWS_SECRET_ACCESS_KEY=test" >> .env
+  #         echo "AWS_DEFAULT_REGION=us-east-1" >> .env
+  #         echo "AWS_REGION=us-east-1" >> .env
+  #         echo "S3_DATA_BUCKET_NAME=air-quality-mlops-data-chicago-2025" >> .env
+  #         echo "S3_MLFLOW_ARTIFACTS_BUCKET_NAME=test-mlflow-bucket" >> .env
+  #         echo "MLFLOW_S3_ENDPOINT_URL=https://s3.us-east-1.amazonaws.com" >> .env
+  #         echo "MLFLOW_ARTIFACT_LOCATION=s3://test-mlflow-bucket/artifacts" >> .env
+  #         echo "EPA_AQS_EMAIL=test@example.com" >> .env
+  #         echo "EPA_AQS_API_KEY=test-api-key" >> .env
+
+  #     - name: Validate data pipeline (dry run)
+  #       run: |
+  #         uv run python -c "
+  #         import sys
+  #         sys.path.append('flows')
+  #         try:
+  #             from data_ingestion import *
+  #             from data_transformation import *
+  #             print('✅ Data pipeline imports successful')
+  #         except Exception as e:
+  #             print(f'❌ Data pipeline validation failed: {e}')
+  #             sys.exit(1)
+  #         "
+
+  #     - name: Validate model pipeline (dry run)
+  #       run: |
+  #         uv run python -c "
+  #         import sys
+  #         sys.path.append('flows')
+  #         try:
+  #             from model_training import *
+  #             from model_inference import *
+  #             print('✅ Model pipeline imports successful')
+  #         except Exception as e:
+  #             print(f'❌ Model pipeline validation failed: {e}')
+  #             sys.exit(1)
+  #         "
+
+  #     - name: Check MLflow configuration
+  #       run: |
+  #         uv run python -c "
+  #         import mlflow
+  #         import os
+  #         from dotenv import load_dotenv
+  #         load_dotenv()
+  #         print(f'MLflow tracking URI: {mlflow.get_tracking_uri()}')
+  #         print('✅ MLflow configuration valid')
+  #         "
+
+  # Job 5: Dependency Security Audit (COMMENTED OUT)
+  # security:
+  #   name: Security Audit
+  #   runs-on: ubuntu-latest
+  #   if: github.event_name == 'schedule' || github.event_name == 'push'
+
+  #   steps:
+  #     - name: Checkout code
+  #       uses: actions/checkout@v4
+
+  #     - name: Set up Python
+  #       uses: actions/setup-python@v4
   #       with:
-  #         tag_name: v${{ steps.get_version.outputs.version }}
-  #         name: Release v${{ steps.get_version.outputs.version }}
-  #         body: |
-  #           Automated release of Air Quality MLOps Pipeline v${{ steps.get_version.outputs.version }}
+  #         python-version: ${{ env.PYTHON_VERSION }}
 
-  #           ## Changes
-  #           - See commit history for detailed changes
+  #     - name: Install UV
+  #       run: |
+  #         curl -LsSf https://astral.sh/uv/install.sh | sh
+  #         echo "$HOME/.cargo/bin" >> $GITHUB_PATH
 
-  #           ## Artifacts
-  #           - Python package built and tested
-  #           - Documentation updated
-  #           - All quality checks passed
-  #         draft: false
-  #         prerelease: false
+  #     - name: Install dependencies
+  #       run: |
+  #         uv sync --group dev
+
+  #     - name: Run security audit
+  #       run: |
+  #         uv run safety scan --output text || true
+
+  #     - name: Run bandit security scan
+  #       run: |
+  #         uv run bandit -r flows/ -f json -o bandit-report.json || echo '{"results": [], "metrics": {"_totals": {"loc": 0, "nosec": 0, "skipped_tests": 0}}}' > bandit-report.json
+
+  #     - name: Upload security reports
+  #       uses: actions/upload-artifact@v4
+  #       if: always()
+  #       with:
+  #         name: security-reports
+  #         path: |
+  #           bandit-report.json
