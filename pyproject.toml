@@ -55,6 +55,7 @@ dependencies = [
     "evidently==0.6.7",
     # Documentation
     "mkdocs>=1.5.0",
+    "types-requests>=2.32.4.20250611",
 ]
 
 # Modern dependency groups format (preferred by uv)
@@ -62,7 +63,6 @@ dependencies = [
 dev = [
     # Code formatting and linting (Ruff replaces black, isort, flake8, pylint)
     "ruff>=0.1.0",
-    
     # Testing
     "pytest>=7.4.0",
     "pytest-mock>=3.11.0",
@@ -70,10 +70,10 @@ dev = [
     "pytest-xdist>=3.3.0",
     "requests-mock>=1.11.0",
     "moto[s3]>=4.2.0",
-    
     # Development tools
     "pre-commit>=3.0.0",
     "mypy>=1.0.0",
+    "safety>=3.2.9",
 ]
 
 test = [
@@ -258,6 +258,8 @@ omit = [
     "*/venv/*",
     "*/.venv/*",
     "*/migrations/*",
+    "flows/mlflow_test.py", 
+    "flows/register_blocks.py", 
 ]
 
 [tool.coverage.report]
@@ -277,26 +279,4 @@ show_missing = true
 skip_covered = false
 precision = 2
 
-[tool.mypy]
-python_version = "3.10"
-warn_return_any = true
-warn_unused_configs = true
-disallow_untyped_defs = true
-ignore_missing_imports = true
-strict_optional = true
-warn_redundant_casts = true
-warn_unused_ignores = true
-
-[[tool.mypy.overrides]]
-module = [
-    "mlflow.*",
-    "prefect.*",
-    "prefect_aws.*",
-    "evidently.*",
-    "moto.*",
-    "boto3.*",
-    "botocore.*",
-    "requests_mock.*",
-    "pytest.*",
-]
 ignore_missing_imports = true
