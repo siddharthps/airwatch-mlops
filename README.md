@@ -18,7 +18,7 @@ This project implements an end-to-end machine learning operations (MLOps) pipeli
 
 ## 🏗️ Architecture
 
-```
+```text
 ┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
 │   EPA AQS API   │───▶│  Data Ingestion  │───▶│ Data Transform  │
 └─────────────────┘    └──────────────────┘    └─────────────────┘
@@ -75,6 +75,8 @@ This project implements an end-to-end machine learning operations (MLOps) pipeli
 - ✅ **Modern Python tooling** (UV, Ruff, pytest)
 - ✅ **Moto-based AWS mocking** for reliable testing
 - ✅ **Type hints** and code quality enforcement
+- ✅ **Pre-commit hooks** for automated code quality checks
+- ✅ **GitHub Actions workflows** (configured but commented out)
 
 ### **Containerization & Deployment**
 
@@ -175,7 +177,7 @@ make run-inference
 # Data preparation only
 make run-data-prep
 
-# Model inference only  
+# Model inference only
 make run-inference
 
 # Generate predictions for specific year
@@ -220,6 +222,7 @@ make test-cov
 # Or directly with UV
 uv run pytest tests/ --cov=flows --cov-report=html
 ```
+
 ## 📊 Monitoring & Observability
 
 ### MLflow Dashboard
@@ -238,8 +241,38 @@ Access experiment tracking at: `http://localhost:5000`
 - **Prediction Quality**: Actual vs predicted comparisons
 - **Pipeline Health**: Success rates, execution times, error rates
 
-
 ## 🛠️ Development Tools
+
+### Pre-commit Hooks
+
+The project includes pre-commit hooks for automated code quality checks:
+
+```bash
+# Install pre-commit hooks
+pre-commit install
+
+# Run hooks manually on all files
+pre-commit run --all-files
+```
+
+**Configured hooks:**
+
+- **Ruff linting and formatting** for Python code quality
+- **Type checking** with mypy
+- **Security scanning** with safety
+- **Trailing whitespace** and **end-of-file** fixes
+
+### GitHub Actions
+
+GitHub Actions workflows are configured but currently commented out. To enable:
+
+1. Uncomment the workflows in `.github/workflows/`
+2. Configure repository secrets for AWS credentials
+3. Workflows include:
+   - **Code Quality**: Linting, formatting, and type checking
+   - **Testing**: Unit and integration tests with coverage reporting
+   - **Security**: Dependency vulnerability scanning
+   - **Docker**: Container build and push to registry
 
 ### Makefile Commands
 
@@ -327,5 +360,5 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - **Evidently AI** for excellent model monitoring capabilities
 - **Prefect** for robust workflow orchestration
 - **MLflow** for experiment tracking and model management
-- **Data Talks Club** for the MLOps Zoomcamp 
-- **Alexey Grigorev** 
+- **Data Talks Club** for the MLOps Zoomcamp
+- **Alexey Grigorev**
