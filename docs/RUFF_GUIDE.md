@@ -1,6 +1,7 @@
 # Ruff Configuration Guide
 
-This project uses [Ruff](https://docs.astral.sh/ruff/) as the primary tool for code formatting and linting, replacing black, isort, flake8, and pylint.
+This project uses [Ruff](https://docs.astral.sh/ruff/) as the primary tool for code
+formatting and linting, replacing black, isort, flake8, and pylint.
 
 ## Why Ruff?
 
@@ -107,8 +108,8 @@ Add to your `.vscode/settings.json`:
 ### PyCharm
 
 1. Install the Ruff plugin
-2. Configure in Settings → Tools → Ruff
-3. Enable "Run Ruff on save"
+1. Configure in Settings → Tools → Ruff
+1. Enable "Run Ruff on save"
 
 ## Pre-commit Hook
 
@@ -152,13 +153,13 @@ repos:
 
 ## Performance Comparison
 
-| Tool | Time (large codebase) | Ruff Equivalent |
-|------|----------------------|-----------------|
-| black | ~2.5s | ruff format (~0.1s) |
-| isort | ~1.8s | ruff check I* (~0.05s) |
-| flake8 | ~8.2s | ruff check E,W,F (~0.1s) |
-| pylint | ~45s | ruff check PL* (~0.2s) |
-| **Total** | **~57.5s** | **~0.45s** |
+| Tool      | Time (large codebase) | Ruff Equivalent          |
+| --------- | --------------------- | ------------------------ |
+| black     | ~2.5s                 | ruff format (~0.1s)      |
+| isort     | ~1.8s                 | ruff check I\* (~0.05s)  |
+| flake8    | ~8.2s                 | ruff check E,W,F (~0.1s) |
+| pylint    | ~45s                  | ruff check PL\* (~0.2s)  |
+| **Total** | **~57.5s**            | **~0.45s**               |
 
 *Times are approximate and may vary based on codebase size and complexity.*
 
@@ -172,14 +173,14 @@ repos:
    long_variable_name = some_function_with_many_args(arg1, arg2, arg3, arg4)  # noqa: E501
    ```
 
-2. **Import sorting conflicts**: Ensure `known-first-party` is correctly configured
+1. **Import sorting conflicts**: Ensure `known-first-party` is correctly configured
 
    ```toml
    [tool.ruff.isort]
    known-first-party = ["air_quality_ml_project", "flows"]
    ```
 
-3. **False positives in tests**: Use per-file ignores for test-specific patterns
+1. **False positives in tests**: Use per-file ignores for test-specific patterns
 
    ```toml
    [tool.ruff.per-file-ignores]
@@ -205,7 +206,7 @@ ruff --version
 ## Best Practices
 
 1. **Run before committing**: Always run `ruff check --fix && ruff format`
-2. **Use in CI/CD**: Add Ruff checks to your pipeline
-3. **Configure IDE**: Set up automatic formatting and linting
-4. **Gradual adoption**: Start with basic rules, add more over time
-5. **Team consistency**: Share configuration via `pyproject.toml`
+1. **Use in CI/CD**: Add Ruff checks to your pipeline
+1. **Configure IDE**: Set up automatic formatting and linting
+1. **Gradual adoption**: Start with basic rules, add more over time
+1. **Team consistency**: Share configuration via `pyproject.toml`

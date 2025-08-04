@@ -11,7 +11,9 @@ from flows.model_monitoring import model_monitoring_flow
 # Define the schedule (e.g., run every 24 hours)
 # You can change this to CronSchedule for more complex schedules
 # Example: Every day at 3 AM: CronSchedule(cron="0 3 * * *", timezone="America/Chicago")
-monitoring_schedule = IntervalSchedule(interval=timedelta(hours=24), timezone="America/Chicago")
+monitoring_schedule = IntervalSchedule(
+    interval=timedelta(hours=24), timezone="America/Chicago"
+)
 
 # Load the Email Notification block
 # The name MUST match the name you used in Step 2
@@ -33,13 +35,18 @@ deployment = Deployment.build_from_flow(
     path="flows",  # The directory where model_monitoring.py lives
     entrypoint="model_monitoring.py:model_monitoring_flow",
     notifications=[
-        {"block": email_notifier_block, "runs_on": ["failed"]},  # Trigger on FAILED state
+        {
+            "block": email_notifier_block,
+            "runs_on": ["failed"],
+        },  # Trigger on FAILED state
         # You could also add for success notifications:
-    ]
+    ],
 )
 
 if __name__ == "__main__":
     deployment.apply()
     print("Deployment applied successfully!")
-    print("Check the Prefect UI (http://127.0.0.1:4200) under 'Deployments' to see your new deployment.")
+    print(
+        "Check the Prefect UI (http://127.0.0.1:4200) under 'Deployments' to see your new deployment."
+    )
     print("Flow runs will start automatically based on the schedule.")

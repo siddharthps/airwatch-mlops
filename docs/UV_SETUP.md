@@ -1,6 +1,7 @@
 # UV Environment Setup Guide
 
-This project is configured to work with `uv`, a fast Python package installer and resolver.
+This project is configured to work with `uv`, a fast Python package installer and
+resolver.
 
 ## Prerequisites
 
@@ -56,8 +57,10 @@ pytest tests/ -v
 
 ## Available Dependency Groups
 
-- **Production** (`uv pip install -e .`): Core dependencies needed to run the application
-- **Development** (`uv pip install -e ".[dev]"`): Ruff (formatting & linting) and testing tools
+- **Production** (`uv pip install -e .`): Core dependencies needed to run the
+  application
+- **Development** (`uv pip install -e ".[dev]"`): Ruff (formatting & linting) and
+  testing tools
 - **Testing** (`uv pip install -e ".[test]"`): Testing framework and mocking libraries
 - **Documentation** (`uv pip install -e ".[docs]"`): Documentation generation tools
 - **All** (`uv pip install -e ".[all]"`): All dependency groups combined
@@ -102,7 +105,8 @@ mkdocs serve
 
 ## Migration from requirements.txt
 
-The old `requirements.txt` file is still present for compatibility, but the project now uses `pyproject.toml` as the primary dependency specification. You can still use:
+The old `requirements.txt` file is still present for compatibility, but the project now
+uses `pyproject.toml` as the primary dependency specification. You can still use:
 
 ```bash
 # Legacy pip installation (slower)
@@ -122,18 +126,21 @@ uv pip install -e ".[all]"
    uv venv --python 3.10
    ```
 
-2. **Permission errors**: Make sure virtual environment is activated
-   
+1. **Permission errors**: Make sure virtual environment is activated
+
 ```bash
    source .venv/bin/activate  # Unix/macOS
    .venv\Scripts\activate     # Windows
-   ```
+```
 
 3. **Dependency conflicts**: Use uv's resolver to check conflicts
-   
+
    ```bash
-uv pip check
    ```
+
+uv pip check
+
+````
 
 ### Environment Variables
 
@@ -148,14 +155,14 @@ cp .env.example .env
 # EPA_AQS_API_KEY=your_api_key
 # S3_DATA_BUCKET_NAME=your_bucket_name
 # AWS_REGION=us-east-1
-```
+````
 
 ## Performance Comparison
 
-| Operation | pip | uv | Improvement |
-|-----------|-----|----|-----------|
-| Fresh install | ~45s | ~8s | 5.6x faster |
-| Cached install | ~12s | ~2s | 6x faster |
-| Dependency resolution | ~15s | ~1s | 15x faster |
+| Operation             | pip  | uv  | Improvement |
+| --------------------- | ---- | --- | ----------- |
+| Fresh install         | ~45s | ~8s | 5.6x faster |
+| Cached install        | ~12s | ~2s | 6x faster   |
+| Dependency resolution | ~15s | ~1s | 15x faster  |
 
 *Times are approximate and may vary based on system and network conditions.*

@@ -2,28 +2,32 @@
 
 ## Overview
 
-Robust testing and quality assurance ensure the reliability, maintainability, and correctness of the AirWatch MLOps pipeline components.
+Robust testing and quality assurance ensure the reliability, maintainability, and
+correctness of the AirWatch MLOps pipeline components.
 
----
+______________________________________________________________________
 
 ## Testing Strategy
 
 ### 1. Unit Tests
 
 - Focus on individual functions and methods to verify correctness.
-- Examples include testing data transformations, API response handling, and model training steps.
+- Examples include testing data transformations, API response handling, and model
+  training steps.
 - Implemented using **pytest** with extensive coverage across modules.
 
 ### 2. Integration Tests
 
-- Test interactions between components such as data ingestion, transformation, and model training flows.
+- Test interactions between components such as data ingestion, transformation, and model
+  training flows.
 - Verify data flows correctly through the pipeline end-to-end.
 - Use **Prefect’s testing utilities** and mocks for external dependencies.
 
 ### 3. Mocking External Services
 
 - Use **moto** library to mock AWS S3 interactions during testing.
-- Mock API calls to the EPA AQS API to avoid external dependencies and control test scenarios.
+- Mock API calls to the EPA AQS API to avoid external dependencies and control test
+  scenarios.
 - Isolate tests from network or cloud resource fluctuations.
 
 ### 4. Coverage and Quality Enforcement
@@ -32,7 +36,7 @@ Robust testing and quality assurance ensure the reliability, maintainability, an
 - Use **Ruff** for linting and enforcing PEP 8 style.
 - Use **UV** for dependency management and environment consistency.
 
----
+______________________________________________________________________
 
 ## Running Tests
 
@@ -40,7 +44,7 @@ Robust testing and quality assurance ensure the reliability, maintainability, an
 - Generate coverage reports to identify untested areas.
 - Run targeted tests for specific modules during development.
 
----
+______________________________________________________________________
 
 ## Best Practices
 
@@ -49,10 +53,11 @@ Robust testing and quality assurance ensure the reliability, maintainability, an
 - Continuously integrate testing in CI pipelines for automated validation.
 - Regularly review and refactor tests for clarity and maintainability.
 
----
+______________________________________________________________________
 
 ## Summary
 
-Comprehensive testing and quality assurance provide confidence in pipeline stability, facilitate faster development, and minimize bugs in production.
+Comprehensive testing and quality assurance provide confidence in pipeline stability,
+facilitate faster development, and minimize bugs in production.
 
----
+______________________________________________________________________

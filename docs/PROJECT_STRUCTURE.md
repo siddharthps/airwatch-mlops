@@ -84,11 +84,11 @@ airwatch-mlops/
 ## Development Workflow
 
 1. **Setup**: Copy `.env.example` to `.env` and configure
-2. **Install**: Run `uv sync` to install dependencies
-3. **Test**: Run `uv run pytest` to execute test suite
-4. **Develop**: Modify flows and add corresponding tests
-5. **Format**: Code is auto-formatted with Ruff
-6. **Deploy**: Use scripts in `scripts/` for deployment
+1. **Install**: Run `uv sync` to install dependencies
+1. **Test**: Run `uv run pytest` to execute test suite
+1. **Develop**: Modify flows and add corresponding tests
+1. **Format**: Code is auto-formatted with Ruff
+1. **Deploy**: Use scripts in `scripts/` for deployment
 
 ## Data Flow
 

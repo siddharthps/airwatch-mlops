@@ -260,8 +260,8 @@ omit = [
     "*/venv/*",
     "*/.venv/*",
     "*/migrations/*",
-    "flows/mlflow_test.py", 
-    "flows/register_blocks.py", 
+    "flows/mlflow_test.py",
+    "flows/register_blocks.py",
 ]
 
 [tool.coverage.report]

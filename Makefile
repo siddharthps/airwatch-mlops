@@ -15,7 +15,7 @@ PYTHON_INTERPRETER = python
 .PHONY: requirements
 requirements:
 	uv pip install -r requirements.txt
-	
+
 
 
 
@@ -49,15 +49,15 @@ test:
 .PHONY: sync_data_down
 sync_data_down:
 	aws s3 sync s3://air-quality-mlops-data-chicago-2025/data/ \
-		data/ 
-	
+		data/
+
 
 ## Upload Data to storage system
 .PHONY: sync_data_up
 sync_data_up:
 	aws s3 sync data/ \
-		s3://air-quality-mlops-data-chicago-2025/data 
-	
+		s3://air-quality-mlops-data-chicago-2025/data
+
 
 
 

@@ -14,6 +14,7 @@ import mlflow
 # Load environment variables
 load_dotenv()
 
+
 def test_mlflow_connection():
     """Test MLflow tracking server connection."""
     print("🧪 Testing MLflow connection...")
@@ -45,6 +46,7 @@ def test_mlflow_connection():
         print(f"❌ MLflow connection failed: {e}")
         return False
 
+
 def test_s3_connection():
     """Test S3 connectivity."""
     print("\n🧪 Testing S3 connection...")
@@ -53,7 +55,7 @@ def test_s3_connection():
     print(f"S3 Data Bucket: {bucket_name}")
 
     try:
-        s3_client = boto3.client('s3')
+        s3_client = boto3.client("s3")
 
         # Test bucket access
         response = s3_client.head_bucket(Bucket=bucket_name)
@@ -61,9 +63,9 @@ def test_s3_connection():
 
         # List some objects
         response = s3_client.list_objects_v2(Bucket=bucket_name, MaxKeys=5)
-        if 'Contents' in response:
+        if "Contents" in response:
             print(f"✅ Found {len(response['Contents'])} objects in bucket")
-            for obj in response['Contents'][:3]:
+            for obj in response["Contents"][:3]:
                 print(f"   - {obj['Key']}")
         else:
             print("Bucket is empty")
@@ -74,6 +76,7 @@ def test_s3_connection():
         print(f"❌ S3 connection failed: {e}")
         return False
 
+
 def test_data_availability():
     """Test if processed data is available in S3."""
     print("\n🧪 Testing processed data availability...")
@@ -82,10 +85,10 @@ def test_data_availability():
     data_key = "processed_data/pm25_daily/pm25_daily_cleaned_2009_2024.parquet"
 
     try:
-        s3_client = boto3.client('s3')
+        s3_client = boto3.client("s3")
         response = s3_client.head_object(Bucket=bucket_name, Key=data_key)
 
-        size_mb = response['ContentLength'] / (1024 * 1024)
+        size_mb = response["ContentLength"] / (1024 * 1024)
         print(f"✅ Found processed data file: {data_key}")
         print(f"   Size: {size_mb:.2f} MB")
         print(f"   Last Modified: {response['LastModified']}")
@@ -97,6 +100,7 @@ def test_data_availability():
         print(f"   Expected location: s3://{bucket_name}/{data_key}")
         return False
 
+
 def main():
     """Run all tests."""
     print("🚀 Testing MLOps setup...\n")
@@ -107,7 +111,7 @@ def main():
         "MLFLOW_TRACKING_URI",
         "MLFLOW_ARTIFACT_LOCATION",
         "AWS_ACCESS_KEY_ID",
-        "AWS_SECRET_ACCESS_KEY"
+        "AWS_SECRET_ACCESS_KEY",
     ]
 
     print("🧪 Checking environment variables...")
@@ -149,6 +153,7 @@ def main():
     else:
         print("⚠️ Some tests failed. Please fix issues before running model training.")
         return False
+
 
 if __name__ == "__main__":
     success = main()
