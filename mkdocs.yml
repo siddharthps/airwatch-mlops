@@ -1,5 +1,6 @@
 site_name: Air Quality MLOps Project
 site_description: Air quality prediction MLOps documentation
+docs_dir: docs
 
 theme:
   name: readthedocs

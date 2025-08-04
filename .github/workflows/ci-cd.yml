@@ -11,7 +11,7 @@ on:
 
 env:
   PYTHON_VERSION: "3.10"
-  UV_VERSION: "0.4.18"
+  UV_VERSION: "0.5.11"
 
 jobs:
   # Job 1: Code Quality and Linting
@@ -97,6 +97,13 @@ jobs:
           echo "AWS_ACCESS_KEY_ID=test" >> .env
           echo "AWS_SECRET_ACCESS_KEY=test" >> .env
           echo "AWS_DEFAULT_REGION=us-east-1" >> .env
+          echo "AWS_REGION=us-east-1" >> .env
+          echo "S3_DATA_BUCKET_NAME=test-data-bucket" >> .env
+          echo "S3_MLFLOW_ARTIFACTS_BUCKET_NAME=test-mlflow-bucket" >> .env
+          echo "MLFLOW_S3_ENDPOINT_URL=https://s3.us-east-1.amazonaws.com" >> .env
+          echo "MLFLOW_ARTIFACT_LOCATION=s3://test-mlflow-bucket/artifacts" >> .env
+          echo "EPA_AQS_EMAIL=test@example.com" >> .env
+          echo "EPA_AQS_API_KEY=test-api-key" >> .env
 
       - name: Run unit tests
         run: |
@@ -149,6 +156,14 @@ jobs:
           echo "MLFLOW_TRACKING_URI=sqlite:///ci_mlflow.db" > .env
           echo "AWS_ACCESS_KEY_ID=test" >> .env
           echo "AWS_SECRET_ACCESS_KEY=test" >> .env
+          echo "AWS_DEFAULT_REGION=us-east-1" >> .env
+          echo "AWS_REGION=us-east-1" >> .env
+          echo "S3_DATA_BUCKET_NAME=test-data-bucket" >> .env
+          echo "S3_MLFLOW_ARTIFACTS_BUCKET_NAME=test-mlflow-bucket" >> .env
+          echo "MLFLOW_S3_ENDPOINT_URL=https://s3.us-east-1.amazonaws.com" >> .env
+          echo "MLFLOW_ARTIFACT_LOCATION=s3://test-mlflow-bucket/artifacts" >> .env
+          echo "EPA_AQS_EMAIL=test@example.com" >> .env
+          echo "EPA_AQS_API_KEY=test-api-key" >> .env
 
       - name: Validate data pipeline (dry run)
         run: |
@@ -213,6 +228,18 @@ jobs:
         run: |
           uv sync --group docs
 
+      - name: Create environment file for docs
+        run: |
+          echo "MLFLOW_TRACKING_URI=sqlite:///docs_mlflow.db" > .env
+          echo "AWS_ACCESS_KEY_ID=test" >> .env
+          echo "AWS_SECRET_ACCESS_KEY=test" >> .env
+          echo "AWS_DEFAULT_REGION=us-east-1" >> .env
+          echo "AWS_REGION=us-east-1" >> .env
+          echo "S3_DATA_BUCKET_NAME=test-data-bucket" >> .env
+          echo "S3_MLFLOW_ARTIFACTS_BUCKET_NAME=test-mlflow-bucket" >> .env
+          echo "EPA_AQS_EMAIL=test@example.com" >> .env
+          echo "EPA_AQS_API_KEY=test-api-key" >> .env
+
       - name: Build documentation
         run: |
           uv run mkdocs build --strict
@@ -244,7 +271,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          uv sync --dev
+          uv sync --group dev
 
       - name: Run security audit
         run: |
@@ -296,12 +323,12 @@ jobs:
           echo "version=$VERSION" >> $GITHUB_OUTPUT
 
       - name: Create GitHub Release
-        uses: actions/create-release@v1
+        uses: softprops/action-gh-release@v2
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tag_name: v${{ steps.get_version.outputs.version }}
-          release_name: Release v${{ steps.get_version.outputs.version }}
+          name: Release v${{ steps.get_version.outputs.version }}
           body: |
             Automated release of Air Quality MLOps Pipeline v${{ steps.get_version.outputs.version }}
 
