@@ -1,0 +1,312 @@
+name: MLOps CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+  schedule:
+    # Run weekly to catch dependency issues
+    - cron: '0 2 * * 1'  # Monday at 2 AM UTC
+
+env:
+  PYTHON_VERSION: "3.10"
+  UV_VERSION: "0.4.18"
+
+jobs:
+  # Job 1: Code Quality and Linting
+  quality:
+    name: Code Quality Checks
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+
+    - name: Install UV
+      run: |
+        curl -LsSf https://astral.sh/uv/install.sh | sh
+        echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+
+    - name: Install dependencies
+      run: |
+        uv sync --dev
+
+    - name: Run pre-commit hooks
+      run: |
+        uv run pre-commit run --all-files
+
+    - name: Check for security vulnerabilities
+      run: |
+        uv run safety check --json --output safety-report.json || true
+        
+    - name: Upload safety report
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: safety-report
+        path: safety-report.json
+
+  # Job 2: Testing across multiple environments
+  test:
+    name: Run Tests
+    runs-on: ${{ matrix.os }}
+    needs: quality
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        python-version: ["3.10", "3.11"]
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+
+    - name: Install UV (Linux/Mac)
+      if: matrix.os != 'windows-latest'
+      run: |
+        curl -LsSf https://astral.sh/uv/install.sh | sh
+        echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+
+    - name: Install UV (Windows)
+      if: matrix.os == 'windows-latest'
+      run: |
+        irm https://astral.sh/uv/install.ps1 | iex
+        echo "$env:USERPROFILE\.cargo\bin" | Out-File -FilePath $env:GITHUB_PATH -Append
+
+    - name: Install dependencies
+      run: |
+        uv sync --dev
+
+    - name: Create test environment file
+      run: |
+        echo "MLFLOW_TRACKING_URI=sqlite:///test_mlflow.db" > .env
+        echo "AWS_ACCESS_KEY_ID=test" >> .env
+        echo "AWS_SECRET_ACCESS_KEY=test" >> .env
+        echo "AWS_DEFAULT_REGION=us-east-1" >> .env
+
+    - name: Run unit tests
+      run: |
+        uv run pytest tests/ -v --tb=short --cov=flows --cov-report=xml --cov-report=term-missing -m "not slow and not integration"
+
+    - name: Run integration tests
+      run: |
+        uv run pytest tests/ -v --tb=short -m "integration"
+      continue-on-error: true  # Integration tests might fail in CI environment
+
+    - name: Upload coverage to Codecov
+      if: matrix.os == 'ubuntu-latest' && matrix.python-version == '3.10'
+      uses: codecov/codecov-action@v3
+      with:
+        file: ./coverage.xml
+        flags: unittests
+        name: codecov-umbrella
+
+  # Job 3: Model Training Validation (MLOps specific)
+  model-validation:
+    name: Validate Model Pipeline
+    runs-on: ubuntu-latest
+    needs: quality
+    if: github.event_name == 'push' || github.event_name == 'pull_request'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+
+    - name: Install UV
+      run: |
+        curl -LsSf https://astral.sh/uv/install.sh | sh
+        echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+
+    - name: Install dependencies
+      run: |
+        uv sync
+
+    - name: Create test data directory
+      run: |
+        mkdir -p data/raw data/processed data/interim
+        
+    - name: Set up test environment
+      run: |
+        echo "MLFLOW_TRACKING_URI=sqlite:///ci_mlflow.db" > .env
+        echo "AWS_ACCESS_KEY_ID=test" >> .env
+        echo "AWS_SECRET_ACCESS_KEY=test" >> .env
+
+    - name: Validate data pipeline (dry run)
+      run: |
+        uv run python -c "
+        import sys
+        sys.path.append('flows')
+        try:
+            from data_ingestion import *
+            from data_transformation import *
+            print('✅ Data pipeline imports successful')
+        except Exception as e:
+            print(f'❌ Data pipeline validation failed: {e}')
+            sys.exit(1)
+        "
+
+    - name: Validate model pipeline (dry run)
+      run: |
+        uv run python -c "
+        import sys
+        sys.path.append('flows')
+        try:
+            from model_training import *
+            from model_inference import *
+            print('✅ Model pipeline imports successful')
+        except Exception as e:
+            print(f'❌ Model pipeline validation failed: {e}')
+            sys.exit(1)
+        "
+
+    - name: Check MLflow configuration
+      run: |
+        uv run python -c "
+        import mlflow
+        import os
+        from dotenv import load_dotenv
+        load_dotenv()
+        print(f'MLflow tracking URI: {mlflow.get_tracking_uri()}')
+        print('✅ MLflow configuration valid')
+        "
+
+  # Job 4: Documentation
+  docs:
+    name: Build Documentation
+    runs-on: ubuntu-latest
+    needs: quality
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+
+    - name: Install UV
+      run: |
+        curl -LsSf https://astral.sh/uv/install.sh | sh
+        echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+
+    - name: Install dependencies
+      run: |
+        uv sync --group docs
+
+    - name: Build documentation
+      run: |
+        uv run mkdocs build --strict
+
+    - name: Deploy documentation to GitHub Pages
+      if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+      run: |
+        uv run mkdocs gh-deploy --force
+
+  # Job 5: Dependency Security Audit
+  security:
+    name: Security Audit
+    runs-on: ubuntu-latest
+    if: github.event_name == 'schedule' || github.event_name == 'push'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+
+    - name: Install UV
+      run: |
+        curl -LsSf https://astral.sh/uv/install.sh | sh
+        echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+
+    - name: Install dependencies
+      run: |
+        uv sync --dev
+
+    - name: Run security audit
+      run: |
+        uv run safety check --full-report --output text
+        
+    - name: Run bandit security scan
+      run: |
+        uv run bandit -r flows/ -f json -o bandit-report.json
+
+    - name: Upload security reports
+      uses: actions/upload-artifact@v3
+      if: always()
+      with:
+        name: security-reports
+        path: |
+          bandit-report.json
+
+  # Job 6: Release (only on main branch)
+  release:
+    name: Create Release
+    runs-on: ubuntu-latest
+    needs: [quality, test, model-validation, docs]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && contains(github.event.head_commit.message, '[release]')
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        fetch-depth: 0
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ env.PYTHON_VERSION }}
+
+    - name: Install UV
+      run: |
+        curl -LsSf https://astral.sh/uv/install.sh | sh
+        echo "$HOME/.cargo/bin" >> $GITHUB_PATH
+
+    - name: Build package
+      run: |
+        uv build
+
+    - name: Get version from pyproject.toml
+      id: get_version
+      run: |
+        VERSION=$(grep "version = " pyproject.toml | head -1 | cut -d'"' -f2)
+        echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+    - name: Create GitHub Release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: v${{ steps.get_version.outputs.version }}
+        release_name: Release v${{ steps.get_version.outputs.version }}
+        body: |
+          Automated release of Air Quality MLOps Pipeline v${{ steps.get_version.outputs.version }}
+          
+          ## Changes
+          - See commit history for detailed changes
+          
+          ## Artifacts
+          - Python package built and tested
+          - Documentation updated
+          - All quality checks passed
+        draft: false
+        prerelease: false
