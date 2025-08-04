@@ -1,0 +1,12 @@
+version: '3.8'
+
+services:
+  airwatch-inference:
+    build: .
+    container_name: airwatch-inference
+    env_file:
+      - .env
+    volumes:
+      - ./models:/app/models
+      - ./data:/app/data
+      - ./reports:/app/reports
