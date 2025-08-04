@@ -1,0 +1,28 @@
+site_name: Air Quality MLOps Project
+site_description: Air quality prediction MLOps documentation
+
+theme:
+  name: readthedocs
+
+nav:
+  - Home: index.md
+  - Project Overview: 01_project_overview.md
+  - Data Pipeline: 02_data_pipeline.md
+  - Model Inference: 03_model_inference.md
+  - Environment & Deployment: 04_environment_and_deployment.md
+  - Model Monitoring: 05_model_monitoring.md
+  - Testing & CI/CD: 06_testing_and_ci_cd.md
+  - Deployment & Infrastructure: 07_deployment_and_infrastructure.md
+  - Monitoring & Observability: 08_monitoring_and_observability.md
+  - Testing & Quality Assurance: 09_testing_and_quality_assurance.md
+  - Deployment & Operations: 10_deployment_and_operationalization.md
+  - Advanced Monitoring: 11_monitoring_and_observability.md
+  - Configuration & Environment: 12_configuration_and_environment.md
+  - Project Structure: PROJECT_STRUCTURE.md
+  - Ruff Guide: RUFF_GUIDE.md
+  - UV Setup: UV_SETUP.md
+
+markdown_extensions:
+  - codehilite
+  - toc:
+      permalink: true

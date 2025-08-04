@@ -117,19 +117,22 @@ uv pip install -e ".[all]"
 ### Common Issues
 
 1. **Python version mismatch**: Ensure you're using Python 3.10+
+
    ```bash
    uv venv --python 3.10
    ```
 
 2. **Permission errors**: Make sure virtual environment is activated
-   ```bash
+   
+```bash
    source .venv/bin/activate  # Unix/macOS
    .venv\Scripts\activate     # Windows
    ```
 
 3. **Dependency conflicts**: Use uv's resolver to check conflicts
+   
    ```bash
-   uv pip check
+uv pip check
    ```
 
 ### Environment Variables
@@ -150,7 +153,7 @@ cp .env.example .env
 ## Performance Comparison
 
 | Operation | pip | uv | Improvement |
-|-----------|-----|----|-----------| 
+|-----------|-----|----|-----------|
 | Fresh install | ~45s | ~8s | 5.6x faster |
 | Cached install | ~12s | ~2s | 6x faster |
 | Dependency resolution | ~15s | ~1s | 15x faster |
